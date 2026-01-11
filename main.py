@@ -212,3 +212,98 @@ class Hack(QWidget):
 
             self.columns.append(letters)
             self.target_indices.append(target_index)
+
+
+ # ------------------ VALIDATION ------------------
+    def select_letter(self):
+        if self.game_over_triggered:
+            return
+
+        col = self.current_col
+
+        if self.column_locked[col]:
+            return
+
+        index = int((self.cursor_row + self.offsets[col]) % ROWS)
+        letter = self.columns[col][index]
+
+        if letter == WORD[col]:
+            self.frozen[self.cursor_row][col] = letter
+            self.column_locked[col] = True
+            self.mistakes = 0
+
+            if all(self.column_locked[:len(WORD)]):
+                self.win()
+        else:
+            self.mistakes += 1
+            if self.mistakes >= 2:
+                self.game_over()
+
+    # ------------------ GAME OVER ------------------
+    def game_over(self):
+        if self.game_over_triggered:
+            return
+        self.game_over_triggered = True
+
+        self.timer.stop()
+        self.close()
+        self.popup = Popup("Temps écoulé ou échec !", self.restart_game)
+        self.popup.show()
+
+    # ------------------ VICTOIRE ------------------
+    def win(self):
+        if self.game_over_triggered:
+            return
+        self.game_over_triggered = True
+
+        self.timer.stop()
+        self.close()
+        self.popup = Popup("GG ! Tu as hacké le système !", self.restart_game)
+        self.popup.show()
+
+    # ------------------ RECOMMENCER ------------------
+    def restart_game(self):
+        self.popup.close()
+        self.__init__()
+
+    # ------------------ ANIMATION + TIMER ------------------
+    def update_grid(self):
+        if self.game_over_triggered:
+            return
+
+        remaining = TIME_LIMIT - (time.time() - self.start_time)
+        if remaining <= 0:
+            
+            self.timer_label.setText("00:00.000")
+            self.game_over()
+            return
+
+        m = int(remaining // 60)
+        s = int(remaining % 60)
+        ms = int((remaining - int(remaining)) * 1000)
+        self.timer_label.setText(f"{m:02d}:{s:02d}.{ms:03d}")
+
+        for c in range(COLS):
+            if not self.column_locked[c]:
+                self.offsets[c] = (self.offsets[c] + 0.15) % ROWS
+
+            for r in range(ROWS):
+                if self.frozen[r][c] is not None:
+                    self.labels[r][c].setText(self.frozen[r][c])
+                    self.labels[r][c].setStyleSheet("color:#00FF66;")
+                    continue
+
+                real_index = int((r + self.offsets[c]) % ROWS)
+                letter = self.columns[c][real_index]
+                is_target = (real_index == self.target_indices[c])
+
+                color = "red" if is_target else "white"
+                self.labels[r][c].setText(letter)
+                self.labels[r][c].setStyleSheet(f"color:{color};")
+
+
+# ===================== MAIN =====================
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = Hack()
+    sys.exit(app.exec_())
