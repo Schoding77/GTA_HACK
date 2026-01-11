@@ -42,3 +42,50 @@ class Popup(QWidget):
 
         layout.addWidget(label)
         layout.addWidget(btn)
+
+# ===================== JEU =====================
+class Hack(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.start_game()
+
+    # ------------------ LANCEMENT ------------------
+    def start_game(self):
+        self.setWindowTitle("Hack-D5G")
+        self.setStyleSheet("background-color:black;")
+        self.resize(600, 520)
+        self.setFocusPolicy(Qt.StrongFocus)
+
+        self.current_col = 0
+        self.cursor_row = ROWS // 2
+        self.mistakes = 0
+        self.start_time = time.time()
+        self.game_over_triggered = False  
+
+        self.offsets = [0.0] * COLS
+        self.frozen = [[None for _ in range(COLS)] for _ in range(ROWS)]
+        self.column_locked = [False] * COLS
+
+        self.generate_columns()
+        self.build_ui()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_grid)
+        self.timer.start(50)
+
+        self.show()
+
+    # ------------------ GÉNÉRATION ------------------
+    def generate_columns(self):
+        self.columns = []
+        self.target_indices = []
+
+        for c in range(COLS):
+            letters = [random.choice(string.ascii_uppercase) for _ in range(ROWS)]
+            target_index = random.randint(0, ROWS - 1)
+
+            if c < len(WORD):
+                letters[target_index] = WORD[c]
+
+            self.columns.append(letters)
+            self.target_indices.append(target_index)
